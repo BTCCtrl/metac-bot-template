@@ -1,0 +1,174 @@
+{
+ "articles": [
+  {
+   "url": "https://econwire.example/2026/10/article-1",
+   "url_mobile": "",
+   "title": "Fed cuts rates by a quarter point and signals a slower pace ahead",
+   "seendate": "20261029T183000Z",
+   "socialimage": "https://econwire.example/img/1.jpg",
+   "domain": "econwire.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://marketdesk.example/2026/10/article-2",
+   "url_mobile": "",
+   "title": "Markets price in one more Federal Reserve cut before year-end",
+   "seendate": "20261030T121500Z",
+   "socialimage": "https://marketdesk.example/img/2.jpg",
+   "domain": "marketdesk.example",
+   "language": "English",
+   "sourcecountry": "United Kingdom"
+  },
+  {
+   "url": "https://capitalnews.example/2026/10/article-3",
+   "url_mobile": "",
+   "title": "Fed cuts rates by a quarter point and signals a slower pace ahead",
+   "seendate": "20261029T190000Z",
+   "socialimage": "https://capitalnews.example/img/3.jpg",
+   "domain": "capitalnews.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://econwire.example/2026/10/article-4",
+   "url_mobile": "",
+   "title": "What to watch as the Federal Reserve meets this week",
+   "seendate": "20261027T090000Z",
+   "socialimage": "https://econwire.example/img/4.jpg",
+   "domain": "econwire.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://econwire.example/2026/10/article-5",
+   "url_mobile": "",
+   "title": "Fed officials split over how fast to cut rates",
+   "seendate": "20261022T140000Z",
+   "socialimage": "https://econwire.example/img/5.jpg",
+   "domain": "econwire.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://econwire.example/2026/10/article-6",
+   "url_mobile": "",
+   "title": "Treasury yields slip as traders bet on Fed rate cuts",
+   "seendate": "20261015T100000Z",
+   "socialimage": "https://econwire.example/img/6.jpg",
+   "domain": "econwire.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://noticias.example/2026/10/article-7",
+   "url_mobile": "",
+   "title": "La Reserva Federal recorta los tipos de interés",
+   "seendate": "20261030T080000Z",
+   "socialimage": "https://noticias.example/img/7.jpg",
+   "domain": "noticias.example",
+   "language": "Spanish",
+   "sourcecountry": "Spain"
+  },
+  {
+   "url": "https://bizjournal.example/2026/10/article-8",
+   "url_mobile": "",
+   "title": "Mortgage rates ease after Fed cut &amp; dovish guidance",
+   "seendate": "20261031T160000Z",
+   "socialimage": "https://bizjournal.example/img/8.jpg",
+   "domain": "bizjournal.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://finance-daily.example/2026/10/article-9",
+   "url_mobile": "",
+   "title": "Fed chair: policy \"not on a preset course\" | Markets live #Fed\n",
+   "seendate": "20261101T070000Z",
+   "socialimage": "https://finance-daily.example/img/9.jpg",
+   "domain": "finance-daily.example",
+   "language": "English",
+   "sourcecountry": "Canada"
+  },
+  {
+   "url": "https://undated.example/2026/10/article-10",
+   "url_mobile": "",
+   "title": "Rate cut hopes lift stocks",
+   "seendate": "",
+   "socialimage": "https://undated.example/img/10.jpg",
+   "domain": "undated.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://unknown.example/2026/10/article-11",
+   "url_mobile": "",
+   "title": "Headline without a source domain",
+   "seendate": "20261028T080000Z",
+   "socialimage": "https://unknown.example/img/11.jpg",
+   "domain": "",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://ratesreport.example/2026/10/article-12",
+   "url_mobile": "",
+   "title": "Bond traders weigh odds of a December rate cut",
+   "seendate": "20261028T113000Z",
+   "socialimage": "https://ratesreport.example/img/12.jpg",
+   "domain": "ratesreport.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://globalmarkets.example/2026/10/article-13",
+   "url_mobile": "",
+   "title": "Dollar slides as Fed rate-cut expectations build",
+   "seendate": "20261025T150000Z",
+   "socialimage": "https://globalmarkets.example/img/13.jpg",
+   "domain": "globalmarkets.example",
+   "language": "English",
+   "sourcecountry": "Australia"
+  },
+  {
+   "url": "https://wealthnews.example/2026/10/article-14",
+   "url_mobile": "",
+   "title": "Savers face lower returns as the Fed keeps cutting",
+   "seendate": "20261020T120000Z",
+   "socialimage": "https://wealthnews.example/img/14.jpg",
+   "domain": "wealthnews.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://policywatch.example/2026/10/article-15",
+   "url_mobile": "",
+   "title": "Former Fed officials warn against cutting rates too quickly",
+   "seendate": "20261018T090000Z",
+   "socialimage": "https://policywatch.example/img/15.jpg",
+   "domain": "policywatch.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://econ-times.example/2026/10/article-16",
+   "url_mobile": "",
+   "title": "Fed minutes show broad support for gradual rate cuts",
+   "seendate": "20261012T080000Z",
+   "socialimage": "https://econ-times.example/img/16.jpg",
+   "domain": "econ-times.example",
+   "language": "English",
+   "sourcecountry": "India"
+  },
+  {
+   "url": "https://thebanker.example/2026/10/article-17",
+   "url_mobile": "",
+   "title": "Banks brace for thinner margins as rate cuts continue",
+   "seendate": "20261008T130000Z",
+   "socialimage": "https://thebanker.example/img/17.jpg",
+   "domain": "thebanker.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  }
+ ]
+}

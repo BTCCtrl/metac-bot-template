@@ -48,6 +48,7 @@ from forecasting_tools import (
 # free_mode.py / free_models.py; every change in this file is marked [FREE MODE].
 import free_mode
 import free_models
+import free_research  # [FREE RESEARCH] GDELT headlines in free mode, no LLM call
 
 dotenv.load_dotenv()
 logger = logging.getLogger(__name__)
@@ -138,6 +139,8 @@ class FallTemplateBot2026(ForecastBot):
     _structure_output_allowed_tries = 3
     # [FREE MODE] Set by build_bot() in free mode; None = original behaviour.
     _free_runtime: free_mode.FreeRuntime | None = None
+    # [FREE RESEARCH] Set by build_bot() in free mode; None = no headlines.
+    _free_research: free_research.FreeResearch | None = None
 
     async def forecast_questions(self, questions, return_exceptions=False):  # type: ignore[override]
         # [FREE MODE] One question at a time, closing soonest first, inside the
@@ -185,8 +188,12 @@ class FallTemplateBot2026(ForecastBot):
                 research = await searcher.invoke(prompt)
             elif not researcher or researcher == "None" or researcher == "no_research":
                 research = ""
-                if self._free_runtime is not None:  # [FREE MODE] say so explicitly
-                    research = free_mode.NO_RESEARCH_NOTE
+                if self._free_research is not None:
+                    # [FREE RESEARCH] GDELT headlines, no LLM call and no key;
+                    # "" when FREE_RESEARCH=off or on any problem (never raises).
+                    research = await self._free_research.research_for(question)
+                if self._free_runtime is not None and not research:
+                    research = free_mode.NO_RESEARCH_NOTE  # [FREE MODE] say so explicitly
             else:
                 research = await self.get_llm("researcher", "llm").invoke(prompt)
             logger.info(f"Found Research for URL {question.page_url}:\n{research}")
@@ -776,7 +783,7 @@ def build_bot(publish_to_metaculus: bool) -> FallTemplateBot2026:
         folder_to_save_reports_to=None,
         skip_previously_forecasted_questions=True,
         extra_metadata_in_explanation=True,
-        enable_summarize_research=False,  # research is empty: save the request
+        enable_summarize_research=False,  # no LLM summary of the research: saves a request
         llms=llms,
     )
     bot._structure_output_validation_samples = 1  # 1 parser request, not 2
@@ -789,9 +796,12 @@ def build_bot(publish_to_metaculus: bool) -> FallTemplateBot2026:
         default_model=llms["default"].model,
         parser_model=llms["parser"].model,
     )
+    # [FREE RESEARCH] FREE_RESEARCH=gdelt (default) or off. Not an LLM: the
+    # "researcher" role stays "no_research" and the request budget is untouched.
+    bot._free_research = free_research.FreeResearch.from_env()
     logger.info(
         f"[free mode] default={llms['default'].model} parser={llms['parser'].model} "
-        f"settings={settings}"
+        f"settings={settings} research={bot._free_research.settings}"
     )
     return bot
 
@@ -902,10 +912,13 @@ if __name__ == "__main__":
             will_publish=publish_to_metaculus,
             tournament_url=TOURNAMENT_URLS.get(run_mode),
         )
-        sys.exit(
-            free_mode.finish_run(
-                template_bot._free_runtime,
-                forecast_reports,
-                strict=(run_mode == "test_questions"),
-            )
+        exit_code = free_mode.finish_run(
+            template_bot._free_runtime,
+            forecast_reports,
+            strict=(run_mode == "test_questions"),
         )
+        if template_bot._free_research is not None:  # [FREE RESEARCH] never changes exit_code
+            research_line = template_bot._free_research.summary_line()
+            logger.info(research_line)  # "Free research (GDELT headlines, no LLM): ..."
+            free_mode.write_step_summary([f"- {research_line}"])
+        sys.exit(exit_code)

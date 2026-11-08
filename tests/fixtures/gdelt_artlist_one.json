@@ -1,0 +1,14 @@
+{
+ "articles": [
+  {
+   "url": "https://econwire.example/2026/10/article-1",
+   "url_mobile": "",
+   "title": "Fed cuts rates by a quarter point and signals a slower pace ahead",
+   "seendate": "20261029T183000Z",
+   "socialimage": "https://econwire.example/img/1.jpg",
+   "domain": "econwire.example",
+   "language": "English",
+   "sourcecountry": "United States"
+  }
+ ]
+}

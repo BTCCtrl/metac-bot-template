@@ -52,3 +52,7 @@ jobs:
           MAX_LLM_CALLS_PER_RUN: ${{ vars.MAX_LLM_CALLS_PER_RUN }}
           MAX_QUESTIONS_PER_RUN: ${{ vars.MAX_QUESTIONS_PER_RUN }}
           PREDICTIONS_PER_REPORT: ${{ vars.PREDICTIONS_PER_REPORT }}
+          # [FREE RESEARCH] gdelt (default) = free news headlines from the GDELT Project
+          # (no key, no LLM request); off = no research. Days back: 1-90 (default 30).
+          FREE_RESEARCH: ${{ vars.FREE_RESEARCH }}
+          FREE_RESEARCH_DAYS: ${{ vars.FREE_RESEARCH_DAYS }}
