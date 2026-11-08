@@ -6,8 +6,9 @@ on:
       days:
         description: "How many days back to look for resolved questions"
         default: "30"
-  schedule:
-    - cron: "0 6 * * 1" # weekly, Monday morning
+  # [FREE MODE] schedule off; "Run workflow" by hand still works.
+  # schedule:
+  #   - cron: "0 6 * * 1" # weekly, Monday morning
 
 # Add concurrency group to prevent parallel runs
 concurrency:

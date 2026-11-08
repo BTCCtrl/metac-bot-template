@@ -2,8 +2,10 @@ name: Forecast on Metaculus Cup
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 */2 * *" # runs at midnight every 2 days
+  # [FREE MODE] schedule off: the free budget (50 requests/day) goes to the
+  # tournament + MiniBench. Uncomment to re-enable (e.g. with paid credits).
+  # schedule:
+  #   - cron: "0 0 */2 * *" # runs at midnight every 2 days
 
 # Add concurrency group to prevent parallel runs
 concurrency:
@@ -42,3 +44,11 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ASKNEWS_CLIENT_ID: ${{ secrets.ASKNEWS_CLIENT_ID }}
           ASKNEWS_SECRET: ${{ secrets.ASKNEWS_SECRET }}
+          # [FREE MODE] free = only OpenRouter ":free" models ($0). paid = original template.
+          # Optional knobs (repository variables; empty = safe defaults for 50 requests/day).
+          BOT_MODE: ${{ vars.BOT_MODE || 'free' }}
+          FREE_MODEL: ${{ vars.FREE_MODEL }}
+          FREE_PARSER_MODEL: ${{ vars.FREE_PARSER_MODEL }}
+          MAX_LLM_CALLS_PER_RUN: ${{ vars.MAX_LLM_CALLS_PER_RUN }}
+          MAX_QUESTIONS_PER_RUN: ${{ vars.MAX_QUESTIONS_PER_RUN }}
+          PREDICTIONS_PER_REPORT: ${{ vars.PREDICTIONS_PER_REPORT }}

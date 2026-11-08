@@ -3,7 +3,11 @@ name: Forecast on new AI tournament questions
 on:
   workflow_dispatch:
   schedule:
-    - cron: "7,27,47 * * * *" # every 20 min, offset off the hour. Make sure to skip already-forecasted questions!
+    # [FREE MODE] every 3 hours: 8 runs/day x 6 requests = 48. The 50 free requests/day
+    # are per OpenRouter ACCOUNT: manual runs (Test Bot, Cup) count too; overflow = 429,
+    # handled as temporary (questions wait for the next run).
+    # Original template (paid credits): "7,27,47 * * * *" = every 20 min.
+    - cron: "17 */3 * * *"
 
 # Add concurrency group to prevent parallel runs
 concurrency:
@@ -15,6 +19,7 @@ concurrency:
 jobs:
   forecast_job:
     runs-on: ubuntu-latest # determines the machine that will run the job - keep as is
+    timeout-minutes: 150 # [FREE MODE] never overlaps the next 3-hourly run
     steps: # sets up the steps that will be run in order
       # setup repository with all necessary dependencies - keep as is
       - name: Check out repository
@@ -42,3 +47,11 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ASKNEWS_CLIENT_ID: ${{ secrets.ASKNEWS_CLIENT_ID }}
           ASKNEWS_SECRET: ${{ secrets.ASKNEWS_SECRET }}
+          # [FREE MODE] free = only OpenRouter ":free" models ($0). paid = original template.
+          # Optional knobs (repository variables; empty = safe defaults for 50 requests/day).
+          BOT_MODE: ${{ vars.BOT_MODE || 'free' }}
+          FREE_MODEL: ${{ vars.FREE_MODEL }}
+          FREE_PARSER_MODEL: ${{ vars.FREE_PARSER_MODEL }}
+          MAX_LLM_CALLS_PER_RUN: ${{ vars.MAX_LLM_CALLS_PER_RUN }}
+          MAX_QUESTIONS_PER_RUN: ${{ vars.MAX_QUESTIONS_PER_RUN }}
+          PREDICTIONS_PER_REPORT: ${{ vars.PREDICTIONS_PER_REPORT }}

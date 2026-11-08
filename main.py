@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import logging
+import sys
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -40,6 +41,13 @@ from forecasting_tools import (
     clean_indents,
     structure_output,
 )
+
+# [FREE MODE] This fork runs on OpenRouter `:free` models only ($0) when
+# BOT_MODE=free (the default). BOT_MODE=paid keeps the original template
+# behaviour (e.g. for a season with sponsored credits). Free-mode logic lives in
+# free_mode.py / free_models.py; every change in this file is marked [FREE MODE].
+import free_mode
+import free_models
 
 dotenv.load_dotenv()
 logger = logging.getLogger(__name__)
@@ -125,6 +133,25 @@ class FallTemplateBot2026(ForecastBot):
     )
     _concurrency_limiter = asyncio.Semaphore(_max_concurrent_questions)
     _structure_output_validation_samples = 2
+    # [FREE MODE] Parser retries on unparsable output (3 = structure_output's
+    # own default, i.e. the template behaviour). Free mode uses 1.
+    _structure_output_allowed_tries = 3
+    # [FREE MODE] Set by build_bot() in free mode; None = original behaviour.
+    _free_runtime: free_mode.FreeRuntime | None = None
+
+    async def forecast_questions(self, questions, return_exceptions=False):  # type: ignore[override]
+        # [FREE MODE] One question at a time, closing soonest first, inside the
+        # per-run request budget (free tier: 50 requests/day, 20/minute).
+        if self._free_runtime is None:
+            return await super().forecast_questions(questions, return_exceptions)
+        return await free_mode.forecast_within_budget(
+            self,
+            questions,
+            return_exceptions,
+            forecast_fn=super().forecast_questions,
+            settings=self._free_runtime.settings,
+            budget=self._free_runtime.budget,
+        )
 
     ##################################### RESEARCH #####################################
 
@@ -158,6 +185,8 @@ class FallTemplateBot2026(ForecastBot):
                 research = await searcher.invoke(prompt)
             elif not researcher or researcher == "None" or researcher == "no_research":
                 research = ""
+                if self._free_runtime is not None:  # [FREE MODE] say so explicitly
+                    research = free_mode.NO_RESEARCH_NOTE
             else:
                 research = await self.get_llm("researcher", "llm").invoke(prompt)
             logger.info(f"Found Research for URL {question.page_url}:\n{research}")
@@ -237,6 +266,19 @@ class FallTemplateBot2026(ForecastBot):
     ) -> ReasonedPrediction[float]:
         reasoning = await self.get_llm("default", "llm").invoke(prompt)
         logger.info(f"Reasoning for URL {question.page_url}: {reasoning}")
+        if self._free_runtime is not None:
+            # [FREE MODE] Read the final "Probability: ZZ%" line without an LLM
+            # (saves one free request per forecast). If it is missing/unclear,
+            # fall through to the normal LLM parser below.
+            local_probability = free_mode.parse_final_probability(reasoning)
+            if local_probability is not None:
+                decimal_pred = max(0.01, min(0.99, local_probability))
+                logger.info(
+                    f"Forecasted URL {question.page_url} with prediction: {decimal_pred} (parsed locally)."
+                )
+                return ReasonedPrediction(
+                    prediction_value=decimal_pred, reasoning=reasoning
+                )
         parsing_instructions = clean_indents(
             f"""
             The text given to you is trying to give a probability forecast for a binary question.
@@ -248,6 +290,7 @@ class FallTemplateBot2026(ForecastBot):
             BinaryPrediction,
             model=self.get_llm("parser", "llm"),
             num_validation_samples=self._structure_output_validation_samples,
+            allowed_tries=self._structure_output_allowed_tries,  # [FREE MODE]
             additional_instructions=parsing_instructions,
         )
         decimal_pred = max(0.01, min(0.99, binary_prediction.prediction_in_decimal))
@@ -324,6 +367,7 @@ class FallTemplateBot2026(ForecastBot):
             output_type=PredictedOptionList,
             model=self.get_llm("parser", "llm"),
             num_validation_samples=self._structure_output_validation_samples,
+            allowed_tries=self._structure_output_allowed_tries,  # [FREE MODE]
             additional_instructions=parsing_instructions,
         )
 
@@ -423,6 +467,7 @@ class FallTemplateBot2026(ForecastBot):
             model=self.get_llm("parser", "llm"),
             additional_instructions=parsing_instructions,
             num_validation_samples=self._structure_output_validation_samples,
+            allowed_tries=self._structure_output_allowed_tries,  # [FREE MODE]
         )
         prediction = NumericDistribution.from_question(percentile_list, question)
         logger.info(
@@ -515,6 +560,7 @@ class FallTemplateBot2026(ForecastBot):
             model=self.get_llm("parser", "llm"),
             additional_instructions=parsing_instructions,
             num_validation_samples=self._structure_output_validation_samples,
+            allowed_tries=self._structure_output_allowed_tries,  # [FREE MODE]
         )
 
         percentile_list = [
@@ -683,6 +729,73 @@ class FallTemplateBot2026(ForecastBot):
         )
 
 
+def build_bot(publish_to_metaculus: bool) -> FallTemplateBot2026:
+    """[FREE MODE] Build the bot for BOT_MODE=paid (template) or free."""
+    if not free_mode.is_free_mode():
+        # BOT_MODE=paid: the original template configuration, unchanged.
+        # The `llms=` block below is commented out to use whichever default
+        # models forecasting-tools picks based on your env vars; uncomment and
+        # edit to pin specific models.
+        return FallTemplateBot2026(
+            research_reports_per_question=1,
+            predictions_per_research_report=5,
+            use_research_summary_to_forecast=False,
+            publish_reports_to_metaculus=publish_to_metaculus,
+            folder_to_save_reports_to=None,
+            skip_previously_forecasted_questions=True,
+            extra_metadata_in_explanation=True,
+            # llms={
+            #     "default": GeneralLlm(
+            #         model="openrouter/openai/gpt-4o",
+            #         temperature=0.3,
+            #         timeout=40,
+            #         allowed_tries=2,
+            #     ),
+            #     "summarizer": "openai/gpt-4o-mini",
+            #     "researcher": "asknews/news-summaries",
+            #     "parser": "openai/gpt-4o-mini",
+            # },
+        )
+
+    # BOT_MODE=free: only OpenRouter `:free` models, every role set explicitly
+    # so no forecasting-tools default (gpt-4o, gpt-4o-mini, AskNews...) is used.
+    settings = free_mode.FreeSettings.from_env()
+    budget = free_mode.CallBudget(
+        settings.max_llm_calls_per_run, settings.min_seconds_between_calls
+    )
+    free_mode.install_paid_model_guard()  # any non-:free call raises before sending
+    llms = free_mode.build_free_llms(budget, free_models.fetch_models())
+    free_mode.assert_all_llms_free(llms)
+    bot = FallTemplateBot2026(
+        research_reports_per_question=1,
+        predictions_per_research_report=settings.predictions_per_report,
+        use_research_summary_to_forecast=False,
+        # Publishing posts the forecast AND the reasoning as a comment.
+        # Comments are required to earn prizes: keep this True.
+        publish_reports_to_metaculus=publish_to_metaculus,
+        folder_to_save_reports_to=None,
+        skip_previously_forecasted_questions=True,
+        extra_metadata_in_explanation=True,
+        enable_summarize_research=False,  # research is empty: save the request
+        llms=llms,
+    )
+    bot._structure_output_validation_samples = 1  # 1 parser request, not 2
+    # A question whose answer cannot be parsed costs 1 parser request, not 3,
+    # and simply waits for the next run (it cannot starve the queue).
+    bot._structure_output_allowed_tries = 1
+    bot._free_runtime = free_mode.FreeRuntime(
+        settings=settings,
+        budget=budget,
+        default_model=llms["default"].model,
+        parser_model=llms["parser"].model,
+    )
+    logger.info(
+        f"[free mode] default={llms['default'].model} parser={llms['parser'].model} "
+        f"settings={settings}"
+    )
+    return bot
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
@@ -701,32 +814,13 @@ if __name__ == "__main__":
     run_mode: Literal["tournament", "metaculus_cup", "test_questions"] = args.mode
 
     check_environment(strict=True)
+    if free_mode.is_free_mode():  # [FREE MODE]
+        free_mode.require_openrouter_key()
     publish_to_metaculus = True
     print_startup_banner(run_mode, will_publish=publish_to_metaculus)
 
-    # Configure the bot. The `llms=` block below is commented out to use
-    # whichever default models forecasting-tools picks based on your env vars;
-    # uncomment and edit to pin specific models.
-    template_bot = FallTemplateBot2026(
-        research_reports_per_question=1,
-        predictions_per_research_report=5,
-        use_research_summary_to_forecast=False,
-        publish_reports_to_metaculus=publish_to_metaculus,
-        folder_to_save_reports_to=None,
-        skip_previously_forecasted_questions=True,
-        extra_metadata_in_explanation=True,
-        # llms={
-        #     "default": GeneralLlm(
-        #         model="openrouter/openai/gpt-4o",
-        #         temperature=0.3,
-        #         timeout=40,
-        #         allowed_tries=2,
-        #     ),
-        #     "summarizer": "openai/gpt-4o-mini",
-        #     "researcher": "asknews/news-summaries",
-        #     "parser": "openai/gpt-4o-mini",
-        # },
-    )
+    # Configure the bot ([FREE MODE] see build_bot above).
+    template_bot = build_bot(publish_to_metaculus)
 
     # Per-mode tournament URL shown in the summary banner footer. These
     # piggyback on the forecasting_tools SDK constants and need updating
@@ -741,7 +835,22 @@ if __name__ == "__main__":
     # exceptions, since return_exceptions=True) which then flows into the
     # summary printers below.
     client = MetaculusClient()
-    if run_mode == "tournament":
+    if run_mode == "tournament" and template_bot._free_runtime is not None:
+        # [FREE MODE] Seasonal + MiniBench questions in ONE queue, so the small
+        # per-run budget goes to whichever questions close soonest. Each
+        # tournament is fetched on its own: one failing does not block the other.
+        all_open_questions, fetch_errors = free_mode.load_open_questions(
+            client, [client.CURRENT_AI_COMPETITION_ID, client.CURRENT_MINIBENCH_ID]
+        )
+        forecast_reports = (
+            asyncio.run(
+                template_bot.forecast_questions(
+                    all_open_questions, return_exceptions=True
+                )
+            )
+            + fetch_errors
+        )
+    elif run_mode == "tournament":
         seasonal_tournament_reports = asyncio.run(
             template_bot.forecast_on_tournament(
                 client.CURRENT_AI_COMPETITION_ID, return_exceptions=True
@@ -775,9 +884,28 @@ if __name__ == "__main__":
             )
         )
 
-    template_bot.log_report_summary(forecast_reports)
-    print_run_summary_banner(
-        forecast_reports,
-        will_publish=publish_to_metaculus,
-        tournament_url=TOURNAMENT_URLS.get(run_mode),
-    )
+    if template_bot._free_runtime is None:
+        template_bot.log_report_summary(forecast_reports)
+        print_run_summary_banner(
+            forecast_reports,
+            will_publish=publish_to_metaculus,
+            tournament_url=TOURNAMENT_URLS.get(run_mode),
+        )
+    else:
+        # [FREE MODE] A rate limit (429) or a flaky free model must not fail
+        # the scheduled job every run: those questions stay unforecasted and
+        # are retried next run. Auth/payment/config errors and code bugs still
+        # exit 1. Manual test runs (test_questions) are strict.
+        template_bot.log_report_summary(forecast_reports, raise_errors=False)
+        print_run_summary_banner(
+            forecast_reports,
+            will_publish=publish_to_metaculus,
+            tournament_url=TOURNAMENT_URLS.get(run_mode),
+        )
+        sys.exit(
+            free_mode.finish_run(
+                template_bot._free_runtime,
+                forecast_reports,
+                strict=(run_mode == "test_questions"),
+            )
+        )

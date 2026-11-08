@@ -26,6 +26,8 @@ jobs:
           version: "0.13.1"
       - name: Install dependencies
         run: uv sync --locked
+      - name: Run offline tests (no network, no LLM calls) # [FREE MODE]
+        run: uv run --with pytest pytest -q tests
       - name: Run bot
         run: |
           uv run python main.py --mode test_questions
@@ -40,3 +42,11 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ASKNEWS_CLIENT_ID: ${{ secrets.ASKNEWS_CLIENT_ID }}
           ASKNEWS_SECRET: ${{ secrets.ASKNEWS_SECRET }}
+          # [FREE MODE] free = only OpenRouter ":free" models ($0). paid = original template.
+          # Optional knobs (repository variables; empty = safe defaults for 50 requests/day).
+          BOT_MODE: ${{ vars.BOT_MODE || 'free' }}
+          FREE_MODEL: ${{ vars.FREE_MODEL }}
+          FREE_PARSER_MODEL: ${{ vars.FREE_PARSER_MODEL }}
+          MAX_LLM_CALLS_PER_RUN: ${{ vars.MAX_LLM_CALLS_PER_RUN }}
+          MAX_QUESTIONS_PER_RUN: ${{ vars.MAX_QUESTIONS_PER_RUN }}
+          PREDICTIONS_PER_REPORT: ${{ vars.PREDICTIONS_PER_REPORT }}
